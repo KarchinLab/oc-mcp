@@ -63,6 +63,9 @@ async def get_caid(caid: str) -> str:
         raise
 
 if __name__ == "__main__":
+    import sys
     # Initialize and run the server
-    # mcp.run(transport='stdio')
-    mcp.run(transport='sse')
+    if len(sys.argv) > 1 and sys.argv[1] == 'sse':
+        mcp.run(transport='sse')
+    else:
+        mcp.run(transport='stdio')

@@ -12,7 +12,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
 # Initialize FastMCP server
-mcp = FastMCP("open-cravat")
+mcp = FastMCP("open-cravat", host='0.0.0.0')
 
 # Constants
 OC_API_BASE = "https://run.opencravat.org"

@@ -4,6 +4,7 @@ from mcp.server.fastmcp import FastMCP
 import requests
 import logging
 import json
+import cravat
 
 logging.basicConfig(
     filename="tool.log",            # log file name
@@ -18,9 +19,10 @@ mcp = FastMCP("open-cravat", host='0.0.0.0')
 OC_API_BASE = "https://run.opencravat.org"
 
 @mcp.tool()
-async def get_allele(chrom: str, pos: int, ref_base: str, alt_base: str) -> str:
+async def get_allele(chrom: str, pos: int, ref_base: str, alt_base: str, annotators: list[str] = ['clinvar', 'go', 'gnomad4']) -> str:
     try:
-        url = f"{OC_API_BASE}/api/annotate?chrom={chrom}&pos={pos}&ref_base={ref_base}&alt_base={alt_base}&annotators=clinvar,go,gnomad4"
+        annotators_param = ','.join(annotators)
+        url = f"{OC_API_BASE}/api/annotate?chrom={chrom}&pos={pos}&ref_base={ref_base}&alt_base={alt_base}&annotators={annotators_param}"
         logging.info(url)
         response = requests.get(url)
         logging.info(response)
@@ -33,9 +35,10 @@ async def get_allele(chrom: str, pos: int, ref_base: str, alt_base: str) -> str:
         raise
 
 @mcp.tool()
-async def get_rsid(rsid: str) -> str:
+async def get_rsid(rsid: str, annotators: list[str] = ['clinvar', 'go', 'gnomad4']) -> str:
     try:
-        url = f"{OC_API_BASE}/api/annotate?dbsnp={rsid}&annotators=clinvar,go,gnomad4"
+        annotators_param = ','.join(annotators)
+        url = f"{OC_API_BASE}/api/annotate?dbsnp={rsid}&annotators={annotators_param}"
         logging.info(url)
         response = requests.get(url)
         logging.info(response)
@@ -48,9 +51,10 @@ async def get_rsid(rsid: str) -> str:
         raise
 
 @mcp.tool()
-async def get_caid(caid: str) -> str:
+async def get_caid(caid: str, annotators: list[str] = ['clinvar', 'go', 'gnomad4']) -> str:
     try:
-        url = f"{OC_API_BASE}/api/annotate?clingen={caid}&annotators=clinvar,go,gnomad4"
+        annotators_param = ','.join(annotators)
+        url = f"{OC_API_BASE}/api/annotate?clingen={caid}&annotators={annotators_param}"
         logging.info(url)
         response = requests.get(url)
         logging.info(response)
@@ -61,6 +65,26 @@ async def get_caid(caid: str) -> str:
     except Exception as e:
         logging.exception(f'Error in get_variant: {e}')
         raise
+
+@mcp.tool()
+async def list_annotators() -> list[str]:
+    annotator_names = cravat.admin_util.list_local()
+    return annotator_names
+
+@mcp.tool()
+async def describe_annotator(annotator:str) -> str:
+    minfo = cravat.admin_util.get_local_module_info(annotator)
+    return minfo.description
+
+@mcp.tool()
+def add(a: int, b: int) -> int:
+    """Add two numbers"""
+    return a + b
+
+@mcp.resource("greeting://{name}")
+def get_greeting(name: str) -> str:
+    """Get a personalized greeting"""
+    return f"Hello, {name}!"
 
 if __name__ == "__main__":
     import sys

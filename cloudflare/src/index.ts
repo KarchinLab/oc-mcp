@@ -6,7 +6,7 @@ import { parse, stringify } from 'yaml'
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
-		name: "Authless Calculator",
+		name: "OpenCRAVAT",
 		version: "1.0.0",
 	});
 

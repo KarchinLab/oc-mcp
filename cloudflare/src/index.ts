@@ -40,6 +40,32 @@ export class MyMCP extends McpAgent {
 		);
 
 		this.server.tool(
+			"get_columns",
+			{
+				annotator: z.string(),
+			},
+			async ({ annotator, }) => {
+				const manifestURL = 'https://store.opencravat.org/manifest.yml';
+				const manifestResponse = await fetch(manifestURL);
+				const yamlText = await manifestResponse.text();
+				const manifest = parse(yamlText);
+				const latestVersion = manifest[annotator].latest_version;
+				const moduleURL = `https://store.opencravat.org/modules/${annotator}/${latestVersion}/${annotator}.yml`
+				const moduleResponse = await fetch(moduleURL);
+				const module = parse(await moduleResponse.text());
+				const columns = {};
+				for (let column of module.output_columns) {
+					columns[column.name] = {
+						title: column.title,
+						type: column.type,
+						desc: column.desc ?? null,
+					}
+				}
+				return { content: [{ type: "text", text: JSON.stringify(columns, null, 2)}]}
+			}
+		);
+
+		this.server.tool(
 			"annotate_allele",
 			{
 				chromosome: z.string(),

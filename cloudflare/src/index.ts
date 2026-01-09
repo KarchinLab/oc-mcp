@@ -8,15 +8,15 @@ export class MyMCP extends McpAgent {
 	server = new McpServer({
 		name: "OpenCRAVAT",
 		version: "1.0.0",
+		description: "Access OpenCRAVAT for genomic variant annotation. Query clinical significance, population frequencies, functional predictions, and more from 100+ annotation sources. Supports variants by chromosome position, rsID, or ClinGen Allele ID.",
 	});
 
 	async init() {
 
 		this.server.tool(
 			"list_annotators",
-			{
-				
-			},
+			"Lists all available OpenCRAVAT annotators with their titles, descriptions, versions, and tags.",
+			{},
 			async ({ }) => {
 				const manifestURL = 'https://store.opencravat.org/manifest.yml';
 				const response = await fetch(manifestURL);
@@ -40,7 +40,8 @@ export class MyMCP extends McpAgent {
 		);
 
 		this.server.tool(
-			"get_columns",
+			"get_fields",
+			"Get the fields returned for an annotator including data type, name, human readable title, and description (if available)",
 			{
 				annotator: z.string(),
 			},
@@ -67,6 +68,7 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"annotate_allele",
+			"Annotate a genomic allele (chromosome, position, reference base, alternate base",
 			{
 				chromosome: z.string(),
 				position: z.number(),
@@ -87,6 +89,7 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"annotate_rsid",
+			"Annotate a dbSNP RSID",
 			{
 				rsid: z.string(),
 				annotators: z.array(z.string()),
@@ -104,6 +107,7 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"annotate_caid",
+			"Annotate a ClinGen Allele Registry ID",
 			{
 				caid: z.string(),
 				annotators: z.array(z.string()),

@@ -3,6 +3,39 @@ import { McpAgent } from "agents/mcp";
 import { z } from "zod";
 import { parse, stringify } from 'yaml'
 
+const annotators = [
+  "abraom", "alfa", "alfa_african", "alfa_asian", "alfa_european",
+  "alfa_latin_american", "alfa_other", "allofus250k", "aloft", "alphamissense",
+  "arrvars", "bayesdel", "biogrid", "brca1_func_assay", "cadd",
+  "cadd_exome", "cancer_genome_interpreter", "cancer_hotspots", "cardioboost", "ccr",
+  "ccre_screen", "cedar", "cgc", "cgd", "cgl",
+  "chasmplus", "chasmplus_mski", "civic", "civic_gene", "clingen",
+  "clingen_allele_registry", "clinpred", "clinvar", "clinvar_T2T_hg38_comparator", "cscape",
+  "cscape_coding", "dann", "dann_coding", "dbcid", "dbscsnv",
+  "dbsnp", "dbsnp_common", "denovo", "dgi", "ditto",
+  "encode_tfbs", "ensembl_regulatory_build", "esm1b", "esp6500", "ess_gene",
+  "eve", "exac_gene", "fathmm", "fathmm_mkl", "fathmm_xf",
+  "fitcons", "flank_seq", "funseq2", "genehancer", "genocanyon",
+  "gerp", "geuvadis", "ghis", "gmvp", "gnomad4",
+  "go", "grantham_scores", "grasp", "gtex", "gwas_catalog",
+  "haploreg_afr", "haploreg_amr", "haploreg_asn", "haploreg_eur", "hg19",
+  "hgdp", "hpo", "intact", "interpro", "linsight",
+  "litvar_full", "loftool", "lrt", "mavedb", "metalr",
+  "metarnn", "metasvm", "mirbase", "mistic", "mitomap",
+  "mupit", "mutation_assessor", "mutationtaster", "mutpanning", "mutpred2",
+  "mutpred_indel", "ncbigene", "ncer", "ncrna", "ndex",
+  "ndex_chd", "ndex_signor", "omim", "oncokb", "pangalodb",
+  "pangolin", "pharmgkb", "phastcons", "phdsnpg", "phi",
+  "phylop", "polyphen2", "prec", "primateai", "provean",
+  "pseudogene", "pubmed", "regeneron", "regulomedb", "repeat",
+  "revel", "rvis", "segway", "sift", "siphy",
+  "spliceai", "swissprot_binding", "swissprot_domains", "swissprot_ptm", "target",
+  "thousandgenomes", "thousandgenomes_ad_mixed_american", "thousandgenomes_african", "thousandgenomes_east_asian", "thousandgenomes_european",
+  "thousandgenomes_south_asian", "trinity", "ucscgenomebrowser", "uk10k_cohort", "uniprot",
+  "uniprot_domain", "varity_r", "vest", "vista_enhancer"
+];
+
+
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
 	server = new McpServer({
@@ -15,18 +48,18 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"list_annotators",
-			"Lists all available OpenCRAVAT annotators with their titles, descriptions, versions, and tags.",
+			"List metadata about the OpenCRAVAT annotators that will be run.",
 			{},
 			async ({ }) => {
 				const manifestURL = 'https://store.opencravat.org/manifest.yml';
 				const response = await fetch(manifestURL);
 				const yamlText = await response.text();
 				const manifest = parse(yamlText);
-				const annotators = {};
+				const out = {};
 				for (let moduleName in manifest) {
 					let ocModule = manifest[moduleName];
-					if (ocModule.type === 'annotator') {
-						annotators[moduleName] = {
+					if (ocModule.type === 'annotator' && annotators.includes(moduleName)) {
+						out[moduleName] = {
 							title: ocModule.title,
 							description: ocModule.description,
 							version: ocModule.latest_version,
@@ -35,7 +68,7 @@ export class MyMCP extends McpAgent {
 						}
 					}
 				}
-				return { content: [{ type: "text", text: JSON.stringify(annotators, null, 2)}]}
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]}
 			}
 		);
 
@@ -74,9 +107,8 @@ export class MyMCP extends McpAgent {
 				position: z.number(),
 				referenceBase: z.string(),
 				alternateBase: z.string(),
-				annotators: z.array(z.string()),
 			},
-			async ({ chromosome, position, referenceBase, alternateBase, annotators, }) => {
+			async ({ chromosome, position, referenceBase, alternateBase, }) => {
 				const apiBase = 'https://run.opencravat.org';
 				const annotatorsArg = annotators.join(',');
 				const url = `${apiBase}/api/annotate?chrom=${chromosome}&pos=${position}&ref_base=${referenceBase}&alt_base=${alternateBase}&annotators=${annotatorsArg}`;
@@ -92,9 +124,8 @@ export class MyMCP extends McpAgent {
 			"Annotate a dbSNP RSID",
 			{
 				rsid: z.string(),
-				annotators: z.array(z.string()),
 			},
-			async ({ rsid, annotators, }) => {
+			async ({ rsid, }) => {
 				const apiBase = 'https://run.opencravat.org';
 				const annotatorsArg = annotators.join(',');
 				const url = `${apiBase}/api/annotate?dbsnp=${rsid}&annotators=${annotatorsArg}`;
@@ -110,9 +141,8 @@ export class MyMCP extends McpAgent {
 			"Annotate a ClinGen Allele Registry ID",
 			{
 				caid: z.string(),
-				annotators: z.array(z.string()),
 			},
-			async ({ caid, annotators, }) => {
+			async ({ caid, }) => {
 				const apiBase = 'https://run.opencravat.org';
 				const annotatorsArg = annotators.join(',');
 				const url = `${apiBase}/api/annotate?clingen=${caid}&annotators=${annotatorsArg}`;

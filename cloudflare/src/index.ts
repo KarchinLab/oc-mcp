@@ -2,39 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { McpAgent } from "agents/mcp";
 import { z } from "zod";
 import { parse, stringify } from 'yaml'
-
-const annotators = [
-  "abraom", "alfa", "alfa_african", "alfa_asian", "alfa_european",
-  "alfa_latin_american", "alfa_other", "allofus250k", "aloft", "alphamissense",
-  "arrvars", "bayesdel", "biogrid", "brca1_func_assay", "cadd",
-  "cadd_exome", "cancer_genome_interpreter", "cancer_hotspots", "cardioboost", "ccr",
-  "ccre_screen", "cedar", "cgc", "cgd", "cgl",
-  "chasmplus", "chasmplus_mski", "civic", "civic_gene", "clingen",
-  "clingen_allele_registry", "clinpred", "clinvar", "clinvar_T2T_hg38_comparator", "cscape",
-  "cscape_coding", "dann", "dann_coding", "dbcid", "dbscsnv",
-  "dbsnp", "dbsnp_common", "denovo", "dgi", "ditto",
-  "encode_tfbs", "ensembl_regulatory_build", "esm1b", "esp6500", "ess_gene",
-  "eve", "exac_gene", "fathmm", "fathmm_mkl", "fathmm_xf",
-  "fitcons", "flank_seq", "funseq2", "genehancer", "genocanyon",
-  "gerp", "geuvadis", "ghis", "gmvp", "gnomad4",
-  "go", "grantham_scores", "grasp", "gtex", "gwas_catalog",
-  "haploreg_afr", "haploreg_amr", "haploreg_asn", "haploreg_eur", "hg19",
-  "hgdp", "hpo", "intact", "interpro", "linsight",
-  "litvar_full", "loftool", "lrt", "mavedb", "metalr",
-  "metarnn", "metasvm", "mirbase", "mistic", "mitomap",
-  "mupit", "mutation_assessor", "mutationtaster", "mutpanning", "mutpred2",
-  "mutpred_indel", "ncbigene", "ncer", "ncrna", "ndex",
-  "ndex_chd", "ndex_signor", "omim", "oncokb", "pangalodb",
-  "pangolin", "pharmgkb", "phastcons", "phdsnpg", "phi",
-  "phylop", "polyphen2", "prec", "primateai", "provean",
-  "pseudogene", "pubmed", "regeneron", "regulomedb", "repeat",
-  "revel", "rvis", "segway", "sift", "siphy",
-  "spliceai", "swissprot_binding", "swissprot_domains", "swissprot_ptm", "target",
-  "thousandgenomes", "thousandgenomes_ad_mixed_american", "thousandgenomes_african", "thousandgenomes_east_asian", "thousandgenomes_european",
-  "thousandgenomes_south_asian", "trinity", "ucscgenomebrowser", "uk10k_cohort", "uniprot",
-  "uniprot_domain", "varity_r", "vest", "vista_enhancer"
-];
-
+import { annotate, defaultAnnotators } from './annotate';
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -58,7 +26,7 @@ export class MyMCP extends McpAgent {
 				const out = {};
 				for (let moduleName in manifest) {
 					let ocModule = manifest[moduleName];
-					if (ocModule.type === 'annotator' && annotators.includes(moduleName)) {
+					if (ocModule.type === 'annotator' && defaultAnnotators.includes(moduleName)) {
 						out[moduleName] = {
 							title: ocModule.title,
 							description: ocModule.description,
@@ -68,7 +36,7 @@ export class MyMCP extends McpAgent {
 						}
 					}
 				}
-				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]}
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
 			}
 		);
 
@@ -95,27 +63,29 @@ export class MyMCP extends McpAgent {
 						desc: column.desc ?? null,
 					}
 				}
-				return { content: [{ type: "text", text: JSON.stringify(columns, null, 2)}]}
+				return { content: [{ type: "text", text: JSON.stringify(columns, null, 2)}]};
 			}
 		);
 
 		this.server.tool(
-			"annotate_allele",
-			"Annotate a genomic allele (chromosome, position, reference base, alternate base",
+			"annotate_variant",
+			"Annotate a genomic variant (chromosome, position, reference allele, alternate allele",
 			{
 				chromosome: z.string(),
 				position: z.number(),
-				referenceBase: z.string(),
-				alternateBase: z.string(),
+				referenceAllele: z.string(),
+				alternateAllele: z.string(),
 			},
-			async ({ chromosome, position, referenceBase, alternateBase, }) => {
-				const apiBase = 'https://run.opencravat.org';
-				const annotatorsArg = annotators.join(',');
-				const url = `${apiBase}/api/annotate?chrom=${chromosome}&pos=${position}&ref_base=${referenceBase}&alt_base=${alternateBase}&annotators=${annotatorsArg}`;
-				const response = await fetch(url);
-				const data = await response.json();
-				
-				return { content: [{ type: "text", text: JSON.stringify(data, null, 2)}]}
+			async ({ chromosome, position, referenceAllele, alternateAllele, }) => {
+				const out = await annotate({
+					variant: {
+						chromosome: chromosome,
+						position: position,
+						referenceAllele: referenceAllele,
+						alternateAllele: alternateAllele,
+					}
+				});
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
 			}
 		);
 
@@ -126,13 +96,10 @@ export class MyMCP extends McpAgent {
 				rsid: z.string(),
 			},
 			async ({ rsid, }) => {
-				const apiBase = 'https://run.opencravat.org';
-				const annotatorsArg = annotators.join(',');
-				const url = `${apiBase}/api/annotate?dbsnp=${rsid}&annotators=${annotatorsArg}`;
-				const response = await fetch(url);
-				const data = await response.json();
-				
-				return { content: [{ type: "text", text: JSON.stringify(data, null, 2)}]}
+				const out = await annotate({
+					rsid: rsid,
+				});
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
 			}
 		);
 
@@ -143,13 +110,24 @@ export class MyMCP extends McpAgent {
 				caid: z.string(),
 			},
 			async ({ caid, }) => {
-				const apiBase = 'https://run.opencravat.org';
-				const annotatorsArg = annotators.join(',');
-				const url = `${apiBase}/api/annotate?clingen=${caid}&annotators=${annotatorsArg}`;
-				const response = await fetch(url);
-				const data = await response.json();
-				
-				return { content: [{ type: "text", text: JSON.stringify(data, null, 2)}]}
+				const out = await annotate({
+					caid: caid,
+				});
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
+			}
+		);
+
+		this.server.tool(
+			"annotate_hgvs",
+			"Annotate an hgvs identifier. Accepts genomic (g.), coding (c.), and protein (p.) level HGVS.",
+			{
+				hgvs: z.string(),
+			},
+			async ({ hgvs, }) => {
+				const out = await annotate({
+					hgvs: hgvs,
+				});
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
 			}
 		);
 

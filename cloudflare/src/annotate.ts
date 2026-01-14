@@ -61,7 +61,6 @@ export const annotate = async (input: AnnotateInput): Promise<unknown> => {
 	}
 	url.searchParams.set('assembly', 'hg38');
 	const finalURL = `${url.toString()}&annotators=${defaultAnnotators.join(',')}`
-	console.log(finalURL);
 	const response = await fetch(finalURL);
 	const data = await response.json();
 	return data;

@@ -3,6 +3,7 @@ import { McpAgent } from "agents/mcp";
 import { z } from "zod";
 import { parse, stringify } from 'yaml'
 import { annotate, defaultAnnotators } from './annotate';
+import { getManifest, getModuleMetadata } from './metadata';
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -19,10 +20,8 @@ export class MyMCP extends McpAgent {
 			"List metadata about the OpenCRAVAT annotators that will be run.",
 			{},
 			async ({ }) => {
-				const manifestURL = 'https://store.opencravat.org/manifest.yml';
-				const response = await fetch(manifestURL);
-				const yamlText = await response.text();
-				const manifest = parse(yamlText);
+				const manifest = await getManifest();
+				console.log(manifest);
 				const out = {};
 				for (let moduleName in manifest) {
 					let ocModule = manifest[moduleName];
@@ -42,28 +41,29 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"get_fields",
-			"Get the fields returned for an annotator including data type, name, human readable title, and description (if available)",
+			"Get the fields returned for annotators including data type, name, human readable title, and description (if available)",
 			{
-				annotator: z.string(),
+				annotators: z.array(z.string()),
 			},
-			async ({ annotator, }) => {
-				const manifestURL = 'https://store.opencravat.org/manifest.yml';
-				const manifestResponse = await fetch(manifestURL);
-				const yamlText = await manifestResponse.text();
-				const manifest = parse(yamlText);
-				const latestVersion = manifest[annotator].latest_version;
-				const moduleURL = `https://store.opencravat.org/modules/${annotator}/${latestVersion}/${annotator}.yml`
-				const moduleResponse = await fetch(moduleURL);
-				const module = parse(await moduleResponse.text());
-				const columns = {};
-				for (let column of module.output_columns) {
-					columns[column.name] = {
-						title: column.title,
-						type: column.type,
-						desc: column.desc ?? null,
-					}
+			async ({ annotators, }) => {
+				const manifest = await getManifest();
+				const out = {};
+				for (let annotator of annotators) {
+					const latestVersion = manifest[annotator].latest_version;
+					const module = await getModuleMetadata(annotator, latestVersion);
+					const columns = Object.fromEntries(
+						module.output_columns.map(column => [
+							column.name,
+							{
+								title: column.title,
+								type: column.type,
+								desc: column.desc ?? null,
+							}
+						])
+					);
+					out[annotator] = columns;
 				}
-				return { content: [{ type: "text", text: JSON.stringify(columns, null, 2)}]};
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]};
 			}
 		);
 
@@ -164,7 +164,6 @@ export class MyMCP extends McpAgent {
 					},
 					genomicHGVS: genomicHGVS,
 					synVarURL: synVarURL,
-					synVarResponse: data,
 				}
 				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]}
 			}

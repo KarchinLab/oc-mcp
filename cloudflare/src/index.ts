@@ -121,7 +121,7 @@ export class MyMCP extends McpAgent {
 
 		this.server.tool(
 			"annotate_rsid",
-			"Annotate a dbSNP RSID",
+			"Annotate a dbSNP rsID",
 			{
 				rsid: z.string(),
 			},
@@ -152,6 +152,46 @@ export class MyMCP extends McpAgent {
 				return { content: [{ type: "text", text: JSON.stringify(data, null, 2)}]}
 			}
 		);
+
+		this.server.tool(
+			"protein_variant_to_genomic_hgvs",
+			"Provide a protein-level missense notation varian (eg BRAF V600E) and get genomic hgvs changes that could cause it. Uses SynVar.",
+			{
+				gene: z.string(),
+				proteinChange: z.string(),
+			},
+			async ({ gene, proteinChange, }) => {
+				const refAA = proteinChange[0];
+				const altAA = proteinChange[proteinChange.length-1];
+				const position = parseInt(proteinChange.slice(1,-1));
+				const synVarURL = new URL('https://synvar.sibils.org/generate/literature/fromMutation')
+				synVarURL.searchParams.set('ref', gene);
+				synVarURL.searchParams.set('variant', proteinChange);
+				synVarURL.searchParams.set('level', 'protein');
+				synVarURL.searchParams.set('format','json');
+				const response = await fetch(synVarURL.toString());
+				const data = await response.json();
+				const genomicHGVS = [];
+				for (let candidate of data['variant-list'].variant[0]['genome-level']['hgvs-list'].hgvs) {
+					if (candidate['@assembly'] === 'GRCh38') {
+						genomicHGVS.push(candidate.value);
+					}
+				}
+				const out = {
+					submitted: {
+						gene: gene,
+						position: position,
+						refAA: refAA,
+						altAA: altAA,
+					},
+					genomicHGVS: genomicHGVS,
+					synVarURL: synVarURL,
+					synVarResponse: data,
+				}
+				return { content: [{ type: "text", text: JSON.stringify(out, null, 2)}]}
+			}
+				
+		)
 	}
 }
 

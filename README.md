@@ -16,7 +16,7 @@ It exposes MCP tools that let an MCP client:
 - Convert a protein missense notation (e.g., BRAF V600E) into candidate GRCh38 genomic HGVS changes (via SynVar), which you can then pass to HGVS annotation.
 
 ## Connecting
-URL is `mcp.opencravat.org`
+This MCP server is hosted remotely at `mcp.opencravat.org`
 
 ### Claude
 Link to claude docs

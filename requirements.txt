@@ -1,7 +1,0 @@
-httpx
-mcp
-requests
-asyncio
-mcp
-anthropic
-dotenv

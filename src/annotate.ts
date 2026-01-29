@@ -3,7 +3,7 @@ export const defaultAnnotators = [
 	"alfa_latin_american", "alfa_other", "allofus250k", "aloft", "alphamissense",
 	"arrvars", "bayesdel", "biogrid", "brca1_func_assay", "cadd",
 	"cadd_exome", "cancer_genome_interpreter", "cancer_hotspots", "cardioboost", "ccr",
-	"ccre_screen", "cedar", "cgc", "cgd", "cgl",
+	"ccre_screen", "cedar", "cgd", "cgl",
 	"chasmplus", "chasmplus_mski", "civic", "civic_gene", "clingen",
 	"clingen_allele_registry", "clinpred", "clinvar", "clinvar_T2T_hg38_comparator", "cscape",
 	"cscape_coding", "dann", "dann_coding", "dbcid", "dbscsnv",
